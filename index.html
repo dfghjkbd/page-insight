@@ -32,35 +32,45 @@
 
   window.fbAsyncInit = function() {
     FB.init({
-      appId      : '516291434195463',
-      xfbml      : true,
-      version    : 'v20.0'
+      appId      : '516291434195463', // Your Facebook App ID
+      cookie     : true,               // Enable cookies to allow the server to access the session
+      xfbml      : true,               // Parse social plugins on this webpage
+      version    : 'v20.0'             // Use this Graph API version
     });
 
+    // Check the user's login status
     FB.getLoginStatus(function(response) {
       if (response.status === 'connected') {
         fetchUserProfile();
         fetchPages();
       } else {
-        FB.login(function(response) {
-          if (response.authResponse) {
-            fetchUserProfile();
-            fetchPages();
-          } else {
-            console.log('User cancelled login or did not fully authorize.');
-          }
-        }, {scope: 'email, pages_show_list, pages_read_engagement'});
+        initiateLogin();
       }
     });
   };
 
+  // Function to trigger Facebook Login
+  function initiateLogin() {
+    FB.login(function(response) {
+      if (response.authResponse) {
+        console.log('User logged in:', response);
+        fetchUserProfile();
+        fetchPages();
+      } else {
+        console.log('User cancelled login or did not fully authorize.');
+      }
+    }, {scope: 'email, pages_show_list, pages_read_engagement'});
+  }
+
+  // Function to fetch the user's profile info
   function fetchUserProfile() {
     FB.api('/me', {fields: 'name, email'}, function(response) {
       document.getElementById("profile").innerHTML =
-        "Good to see you, " + response.name + ". I see your email address is " + response.email;
+        "Good to see you, " + response.name + ". Your email address is " + response.email;
     });
   }
 
+  // Function to fetch the user's pages
   function fetchPages() {
     FB.api('/me/accounts', function(response) {
       if (response.data && response.data.length > 0) {
@@ -69,7 +79,7 @@
           let listItem = document.createElement('li');
           listItem.innerHTML = `<b>${page.name}</b> (ID: ${page.id})`;
           pagesList.appendChild(listItem);
-          fetchPageInsights(page.id, page.name);
+          fetchPageInsights(page.id);
         });
       } else {
         document.getElementById("pages").innerHTML = "No pages found.";
@@ -77,36 +87,28 @@
     });
   }
 
-  function fetchPageInsights(pageId, pageName) {
+  // Function to fetch insights for a specific page
+  function fetchPageInsights(pageId) {
     FB.api(`/${pageId}/insights`, function(response) {
       let insightsDiv = document.getElementById("insights");
       if (response.data && response.data.length > 0) {
-        let pageHeader = document.createElement('h4');
-        pageHeader.innerHTML = `Insights for <b>${pageName}</b> (ID: ${pageId}):`;
-        insightsDiv.appendChild(pageHeader);
-        
         response.data.forEach(insight => {
           let insightItem = document.createElement('p');
           insightItem.innerHTML = `<b>${insight.name}</b>: ${insight.values[0].value}`;
           insightsDiv.appendChild(insightItem);
         });
       } else {
-        let noInsightsMessage = document.createElement('p');
-        noInsightsMessage.innerHTML = `No insights available for ${pageName} (ID: ${pageId}).`;
-        insightsDiv.appendChild(noInsightsMessage);
+        insightsDiv.innerHTML = "No insights available.";
       }
     });
   }
 
+  // Function to log out the user
   function logout() {
     FB.logout(function(response) {
-      console.log(response); // Log the response for debugging
       document.getElementById("profile").innerHTML = "You have logged out.";
       document.getElementById("pages").innerHTML = "";
       document.getElementById("insights").innerHTML = "";
-
-      // Optionally, refresh the page to clear the session and prompt for login again
-      window.location.reload();
     });
   }
 </script>
@@ -118,7 +120,7 @@
      data-button-type="continue_with"
      data-use-continue-as="true"></div>
 
-<!-- Logout button, shifted to the bottom -->
+<!-- Logout button -->
 <br><br>
 <button onclick="logout()" style="background-color: #4267b2; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
   Logout
