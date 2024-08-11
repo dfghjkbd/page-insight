@@ -106,9 +106,13 @@
   // Function to log out the user
   function logout() {
     FB.logout(function(response) {
-      document.getElementById("profile").innerHTML = "You have logged out.";
-      document.getElementById("pages").innerHTML = "";
-      document.getElementById("insights").innerHTML = "";
+      if (response && !response.error) {
+        document.getElementById("profile").innerHTML = "You have logged out.";
+        document.getElementById("pages").innerHTML = "";
+        document.getElementById("insights").innerHTML = "";
+      } else {
+        console.log('Logout failed or no active session.');
+      }
     });
   }
 </script>
