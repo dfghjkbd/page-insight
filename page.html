@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Integration</title>
+    <style>
+        button {
+            background-color: #4267b2;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Add Facebook Login to your webpage</h2>
+
+<!-- Display the user's profile info -->
+<p id="profile"></p>
+
+<!-- Display the list of pages managed by the user -->
+<h3>Your Pages:</h3>
+<ul id="pages"></ul>
+
+<!-- Display page insights -->
+<h3>Page Insights:</h3>
+<div id="insights"></div>
+
+<!-- Facebook SDK for JavaScript -->
+<script>
+  (function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) { return; }
+    js = d.createElement(s); js.id = id;
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));
+
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '516291434195463', // Your Facebook App ID
+      cookie     : true,               // Enable cookies to allow the server to access the session
+      xfbml      : true,               // Parse social plugins on this webpage
+      version    : 'v20.0'             // Use this Graph API version
+    });
+
+    // Check the user's login status
+    FB.getLoginStatus(function(response) {
+      if (response.status === 'connected') {
+        fetchUserProfile();
+        fetchPages();
+      } else {
+        initiateLogin();
+      }
+    });
+  };
+
+  // Function to trigger Facebook Login
+  function initiateLogin() {
+    FB.login(function(response) {
+      if (response.authResponse) {
+        console.log('User logged in:', response);
+        fetchUserProfile();
+        fetchPages();
+      } else {
+        console.log('User cancelled login or did not fully authorize.');
+      }
+    }, {scope: 'email, pages_show_list, pages_read_engagement, pages_manage_posts'});
+  }
+
+  // Function to fetch the user's profile info
+  function fetchUserProfile() {
+    FB.api('/me', {fields: 'name, email'}, function(response) {
+      document.getElementById("profile").innerHTML =
+        "Good to see you, " + response.name + ". Your email address is " + response.email;
+    });
+  }
+
+  // Function to fetch the user's pages
+  function fetchPages() {
+    FB.api('/me/accounts', function(response) {
+      if (response.data && response.data.length > 0) {
+        let pagesList = document.getElementById("pages");
+        response.data.forEach(page => {
+          let listItem = document.createElement('li');
+          listItem.innerHTML = `<b>${page.name}</b> (ID: ${page.id})`;
+          listItem.dataset.pageId = page.id;
+          listItem.dataset.pageAccessToken = page.access_token;
+          pagesList.appendChild(listItem);
+
+          // Optionally, call a function to post on this page
+          // Uncomment to enable posting after login
+          // postOnPage(page.id, page.access_token);
+
+          fetchPageInsights(page.id);
+        });
+      } else {
+        document.getElementById("pages").innerHTML = "No pages found.";
+      }
+    });
+  }
+
+  // Function to post on a Facebook page
+  function postOnPage(pageId, pageAccessToken) {
+    const message = "Hello, this is a test post from the Facebook API!";
+    
+    FB.api(
+      `/${pageId}/feed`,
+      'POST',
+      {
+        message: message,
+        access_token: pageAccessToken
+      },
+      function(response) {
+        if (response && !response.error) {
+          console.log('Post was successful!', response);
+        } else {
+          console.error('Error occurred while posting:', response.error);
+        }
+      }
+    );
+  }
+
+  // Function to fetch insights for a specific page
+  function fetchPageInsights(pageId) {
+    FB.api(`/${pageId}/insights`, function(response) {
+      let insightsDiv = document.getElementById("insights");
+      if (response.data && response.data.length > 0) {
+        insightsDiv.innerHTML = ''; // Clear previous insights
+        response.data.forEach(insight => {
+          let insightItem = document.createElement('p');
+          insightItem.innerHTML = `<b>${insight.name}</b>: ${insight.values[0].value}`;
+          insightsDiv.appendChild(insightItem);
+        });
+      } else {
+        insightsDiv.innerHTML = "No insights available.";
+      }
+    });
+  }
+
+  // Function to log out the user and clear session cookies
+  function logout() {
+    FB.logout(function(response) {
+      if (response && !response.error) {
+        console.log('Logout successful:', response);
+        // Clear the display areas
+        document.getElementById("profile").innerHTML = "You have logged out.";
+        document.getElementById("pages").innerHTML = "";
+        document.getElementById("insights").innerHTML = "";
+        // Optionally, clear cookies manually
+        clearAllCookies();
+      } else {
+        console.error('Logout failed:', response.error);
+      }
+    });
+  }
+
+  // Utility function to clear all cookies
+  function clearAllCookies() {
+    var cookies = document.cookie.split(";");
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i];
+      var eqPos = cookie.indexOf("=");
+      var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+    }
+  }
+</script>
+
+<!-- Button to trigger Facebook login -->
+<div class="fb-login-button"
+     data-max-rows="1"
+     data-size="large"
+     data-button-type="continue_with"
+     data-use-continue-as="true"></div>
+
+<!-- Logout button -->
+<br><br>
+<button onclick="logout()">Logout</button>
+
+</body>
+</html>
