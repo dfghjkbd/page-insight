@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Login</title>
+    <style>
+        button {
+            background-color: #4267b2;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Login to Facebook</h2>
+
+<!-- Display the user's profile info -->
+<p id="profile"></p>
+
+<!-- Facebook SDK for JavaScript -->
+<script>
+  (function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) { return; }
+    js = d.createElement(s); js.id = id;
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));
+
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '516291434195463', // Your Facebook App ID
+      cookie     : true,
+      xfbml      : true,
+      version    : 'v20.0'
+    });
+
+    // Check the user's login status
+    
+
+  function initiateLogin() {
+    FB.login(function(response) {
+      if (response.authResponse) {
+        fetchUserProfile();
+        window.location.href = "page5.html"; // Redirect to pages.html after login
+      } else {
+        console.log('User cancelled login or did not fully authorize.');
+      }
+    }, {scope: 'email, pages_show_list, pages_read_engagement, pages_manage_posts'});
+  }
+
+  function logout() {
+    FB.logout(function(response) {
+      if (response && !response.error) {
+        document.getElementById("profile").innerHTML = "You have logged out.";
+        clearAllCookies();
+      } else {
+        console.error('Logout failed:', response.error);
+      }
+    });
+  }
+
+  // Utility function to clear all cookies
+  function clearAllCookies() {
+    var cookies = document.cookie.split(";");
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i];
+      var eqPos = cookie.indexOf("=");
+      var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+    }
+  }
+</script>
+
+<!-- Button to trigger Facebook login -->
+
+
+<br><br>
+<button onclick="initiateLogin()">Login</button>
+<button onclick="logout()">Logout</button>
+
+</body>
+</html>
