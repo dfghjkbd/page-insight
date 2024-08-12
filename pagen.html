@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Pages Management</title>
+    <style>
+        button {
+            background-color: #4267b2;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #page-details {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Manage Your Facebook Pages</h2>
+
+<!-- Display the list of pages managed by the user -->
+<h3>Your Pages:</h3>
+<ul id="pages"></ul>
+
+<!-- Section to create a post -->
+<h3>Post to a Page:</h3>
+<div id="post-section">
+    <select id="page-select" onchange="fetchPageDetails()"></select><br><br>
+    <textarea id="post-content" rows="4" cols="50" placeholder="Write your post here..."></textarea><br><br>
+    <button onclick="postToPage()">Post to Facebook</button>
+</div>
+
+<!-- Section to display details of the selected page -->
+<h3>Selected Page Details:</h3>
+<div id="page-details">
+    <p><b>Page Name:</b> <span id="page-name"></span></p>
+    <p><b>Page ID:</b> <span id="page-id"></span></p>
+    <p><b>Category:</b> <span id="page-category"></span></p>
+    <p><b>Likes:</b> <span id="page-likes"></span></p>
+    <p><b>Followers:</b> <span id="page-followers"></span></p>
+    <!-- Add more parameters as needed -->
+</div>
+
+<!-- Facebook SDK for JavaScript -->
+<script>
+  (function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) { return; }
+    js = d.createElement(s); js.id = id;
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));
+
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '516291434195463', // Your Facebook App ID
+      cookie     : true,
+      xfbml      : true,
+      version    : 'v20.0'
+    });
+
+    // Check the user's login status
+    FB.getLoginStatus(function(response) {
+      if (response.status === 'connected') {
+        fetchPages();
+      } else {
+        window.location.href = "index.html"; // Redirect to login.html if not logged in
+      }
+    });
+  };
+
+  function fetchPages() {
+    FB.api('/me/accounts', function(response) {
+      if (response.data && response.data.length > 0) {
+        let pagesList = document.getElementById("pages");
+        let pageSelect = document.getElementById("page-select");
+        response.data.forEach(page => {
+          let listItem = document.createElement('li');
+          listItem.innerHTML = `<b>${page.name}</b> (ID: ${page.id})`;
+          pagesList.appendChild(listItem);
+
+          let optionItem = document.createElement('option');
+          optionItem.value = page.id;
+          optionItem.dataset.accessToken = page.access_token;
+          optionItem.innerHTML = page.name;
+          pageSelect.appendChild(optionItem);
+        });
+      } else {
+        document.getElementById("pages").innerHTML = "No pages found.";
+        document.getElementById("post-section").style.display = "none";
+      }
+    });
+  }
+
+  function fetchPageDetails() {
+    let pageSelect = document.getElementById("page-select");
+    let selectedPageId = pageSelect.value;
+    let accessToken = pageSelect.options[pageSelect.selectedIndex].dataset.accessToken;
+
+    if (selectedPageId) {
+      FB.api(
+        `/${selectedPageId}`,
+        'GET',
+        { access_token: accessToken, fields: 'id,name,category,fan_count,followers_count' },
+        function(response) {
+          if (response && !response.error) {
+            document.getElementById("page-name").innerText = response.name || 'N/A';
+            document.getElementById("page-id").innerText = response.id || 'N/A';
+            document.getElementById("page-category").innerText = response.category || 'N/A';
+            document.getElementById("page-likes").innerText = response.fan_count || 'N/A';
+            document.getElementById("page-followers").innerText = response.followers_count || 'N/A';
+            document.getElementById("page-details").style.display = 'block';
+          } else {
+            console.error('Error fetching page details:', response.error);
+            alert('Failed to fetch page details. Please try again.');
+          }
+        }
+      );
+    }
+  }
+
+  function postToPage() {
+    let pageSelect = document.getElementById("page-select");
+    let selectedPageId = pageSelect.value;
+    let accessToken = pageSelect.options[pageSelect.selectedIndex].dataset.accessToken;
+    let postContent = document.getElementById("post-content").value;
+
+    if (selectedPageId && postContent) {
+      FB.api(
+        `/${selectedPageId}/feed`,
+        'POST',
+        { message: postContent, access_token: accessToken },
+        function(response) {
+          if (response && !response.error) {
+            alert('Post was successful!');
+          } else {
+            console.error('Error posting to page:', response.error);
+            alert('Failed to post. Please try again.');
+          }
+        }
+      );
+    } else {
+      alert('Please select a page and write some content to post.');
+    }
+  }
+</script>
+
+</body>
+</html>
